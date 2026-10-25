@@ -1,4 +1,5 @@
 import express from 'express';
+import { Reminder } from '../models/index.js';
 import { authenticateN8n, n8nRateLimiter } from '../middleware/n8nAuth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import {
@@ -60,11 +61,18 @@ router.get(
 router.get(
   '/reminders/due',
   asyncHandler(async (req, res) => {
-    const dueList = await getDueReminders(req.n8nUser._id);
-    const timezone = req.n8nUser.timezone || 'Asia/Kolkata';
-    const recipient = process.env.MY_EMAIL || req.n8nUser.email;
+    // If a specific target user was explicitly requested (via MY_EMAIL or headers/query), filter by that user.
+    // Otherwise, fetch all due reminders across the personal workspace so no user's reminder is missed!
+    const filterUserId = (process.env.MY_EMAIL || req.headers['x-target-user-id'] || req.headers['x-target-user-email'] || req.query.email)
+      ? req.n8nUser._id
+      : null;
+    const dueList = await getDueReminders(filterUserId);
 
     const formattedReminders = dueList.map((rem) => {
+      const userObj = rem.userId && typeof rem.userId === 'object' ? rem.userId : req.n8nUser;
+      const timezone = userObj?.timezone || req.n8nUser?.timezone || 'Asia/Kolkata';
+      const recipient = process.env.MY_EMAIL || userObj?.email || req.n8nUser?.email;
+
       const emailPayload = rem.taskId
         ? buildTaskReminderEmail({
             task: rem.taskId,
@@ -76,7 +84,7 @@ router.get(
       return {
         id: rem._id,
         _id: rem._id,
-        userId: rem.userId,
+        userId: rem.userId?._id || rem.userId,
         taskId: rem.taskId?._id,
         scheduledAt: rem.scheduledAt,
         status: rem.status,
@@ -173,7 +181,11 @@ router.post(
 router.post(
   '/reminders/:id/cancel',
   asyncHandler(async (req, res) => {
-    const reminder = await cancelReminder(req.n8nUser._id, req.params.id);
+    const reminder = await Reminder.findByIdAndUpdate(
+      req.params.id,
+      { $set: { status: 'cancelled', processingLeaseUntil: null } },
+      { new: true }
+    );
     return res.json({ success: true, claimed: false, cancelled: true, reminder });
   })
 );

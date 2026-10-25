@@ -176,6 +176,7 @@ export async function getDueReminders(userId = null) {
 
   return Reminder.find(query)
     .populate('taskId', 'title description priority status dueDate estimatedMinutes')
+    .populate('userId', 'name email timezone')
     .sort({ scheduledAt: 1 })
     .limit(50);
 }

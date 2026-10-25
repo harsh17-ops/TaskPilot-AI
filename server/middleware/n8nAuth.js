@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
-import { User } from '../models/index.js';
+import { User, Reminder } from '../models/index.js';
 
 /**
  * Constant-time comparison to protect against timing attacks.
@@ -60,8 +60,13 @@ export async function authenticateN8n(req, res, next) {
     } else if (targetEmail) {
       targetUser = await User.findOne({ email: String(targetEmail).toLowerCase().trim() });
     } else {
-      // Find the first user or default account if single-tenant personal workspace
-      targetUser = await User.findOne();
+      // Find the user who has active reminders, or the most recently active account
+      const reminderWithUser = await User.findOne({ _id: { $in: await Reminder.distinct('userId', { status: 'pending' }) } });
+      if (reminderWithUser) {
+        targetUser = reminderWithUser;
+      } else {
+        targetUser = await User.findOne().sort({ createdAt: -1 });
+      }
     }
 
     if (!targetUser) {
