@@ -21,7 +21,7 @@ const authRateLimiter = rateLimit({
 export const tokenCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 
@@ -88,7 +88,7 @@ router.post(
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('taskpilot', token, tokenCookieOptions);
 
-    return res.status(201).json({ user: formatPublicUser(user) });
+    return res.status(201).json({ user: formatPublicUser(user), token });
   })
 );
 
@@ -110,7 +110,7 @@ router.post(
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('taskpilot', token, tokenCookieOptions);
 
-    return res.json({ user: formatPublicUser(user) });
+    return res.json({ user: formatPublicUser(user), token });
   })
 );
 

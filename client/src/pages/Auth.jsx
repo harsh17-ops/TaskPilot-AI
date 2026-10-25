@@ -21,6 +21,9 @@ export function Auth({ setUser }) {
     try {
       const endpoint = isSignup ? '/auth/signup' : '/auth/login';
       const response = await api.post(endpoint, form);
+      if (response.data.token) {
+        localStorage.setItem('taskpilot_token', response.data.token);
+      }
       setUser(response.data.user);
     } catch (err) {
       setError(

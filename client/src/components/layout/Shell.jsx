@@ -56,7 +56,10 @@ export function Shell({ user, setUser, dark, setDark }) {
   const location = useLocation();
 
   async function handleLogout() {
-    await api.post('/auth/logout');
+    try {
+      await api.post('/auth/logout');
+    } catch (_) {}
+    localStorage.removeItem('taskpilot_token');
     setUser(null);
   }
 

@@ -12,7 +12,14 @@ import jwt from 'jsonwebtoken';
  */
 export function authenticateToken(req, res, next) {
   try {
-    const token = req.cookies?.taskpilot;
+    let token = req.cookies?.taskpilot;
+    if (!token && req.headers.authorization) {
+      const match = req.headers.authorization.match(/^Bearer\s+(.+)$/i);
+      if (match) {
+        token = match[1];
+      }
+    }
+
     if (!token) {
       return res.status(401).json({ error: 'Please sign in.' });
     }

@@ -33,7 +33,11 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Security and request parsing middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 app.use(
   cors({
     origin: (origin, callback) => {

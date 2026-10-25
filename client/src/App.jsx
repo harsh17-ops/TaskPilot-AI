@@ -17,12 +17,14 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [dark, setDark] = useState(false);
 
-  // Check for an existing valid JWT session cookie on application start
+  // Check for an existing valid JWT session cookie or token on application start
   useEffect(() => {
     api
       .get('/auth/me')
       .then((res) => setUser(res.data.user))
-      .catch(() => {})
+      .catch(() => {
+        localStorage.removeItem('taskpilot_token');
+      })
       .finally(() => setLoading(false));
   }, []);
 

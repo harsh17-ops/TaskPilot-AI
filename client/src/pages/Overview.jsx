@@ -62,26 +62,32 @@ export function Overview({ user, refresh, onAdd }) {
 
       {busy ? (
         <Skeleton />
+      ) : !data ? (
+        <Empty
+          title="Could not load dashboard data"
+          text={error || "Your workspace data couldn't be loaded. Click below to try again."}
+          action={reload}
+        />
       ) : (
         <>
           {/* Key Productivity Metrics */}
           <div className="stat-grid">
             <Stat
               label="Due today"
-              value={data.dueToday}
-              note={`${data.completedToday} completed today`}
+              value={data.dueToday ?? 0}
+              note={`${data.completedToday ?? 0} completed today`}
               icon={CheckSquare}
             />
             <Stat
               label="Active tasks"
-              value={data.activeTasks}
+              value={data.activeTasks ?? 0}
               note="Across your workspace"
               icon={Inbox}
               tone="blue"
             />
             <Stat
               label="Overdue"
-              value={data.overdue}
+              value={data.overdue ?? 0}
               note={data.overdue ? 'Needs your attention' : 'You’re all caught up'}
               icon={Clock}
               tone="rose"
@@ -138,12 +144,12 @@ export function Overview({ user, refresh, onAdd }) {
               </div>
 
               <div className="routine-progress">
-                <strong>{data.routinePercent}%</strong>
+                <strong>{data.routinePercent ?? 0}%</strong>
                 <span>of required habits complete</span>
               </div>
 
               <div className="progress-track">
-                <i style={{ width: `${data.routinePercent}%` }} />
+                <i style={{ width: `${data.routinePercent ?? 0}%` }} />
               </div>
 
               <div className="routine-card-bottom">
