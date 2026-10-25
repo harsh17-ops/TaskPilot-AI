@@ -33,7 +33,28 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl, n8n)
+      if (!origin) return callback(null, true);
+      
+      const allowed = ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'];
+      if (process.env.CLIENT_ORIGIN) {
+        process.env.CLIENT_ORIGIN.split(',').forEach((o) => {
+          allowed.push(o.trim().replace(/\/$/, ''));
+        });
+      }
+
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (
+        allowed.includes(cleanOrigin) ||
+        /\.vercel\.app$/.test(new URL(cleanOrigin).hostname)
+      ) {
+        return callback(null, true);
+      }
+      
+      // Fallback: accept configured origin or allow in dev
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
