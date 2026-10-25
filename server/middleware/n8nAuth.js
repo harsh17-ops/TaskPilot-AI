@@ -88,4 +88,5 @@ export const n8nRateLimiter = rateLimit({
   message: { error: 'Too many automation requests. Please decrease polling frequency.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });

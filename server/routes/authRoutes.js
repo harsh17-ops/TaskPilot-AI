@@ -14,6 +14,7 @@ const authRateLimiter = rateLimit({
   limit: 30, // max 30 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // Cookie settings for secure JWT session management

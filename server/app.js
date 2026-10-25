@@ -29,6 +29,9 @@ dns.setDefaultResultOrder('ipv4first');
 
 const app = express();
 
+// Trust reverse proxy (e.g. Render, Vercel, Cloudflare) for accurate client IP identification
+app.set('trust proxy', 1);
+
 // Security and request parsing middleware
 app.use(helmet());
 app.use(
