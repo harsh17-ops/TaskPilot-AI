@@ -1,0 +1,174 @@
+{
+  "name": "TaskPilot AI — Deadline Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "trigger-hourly",
+      "name": "Every Hour (Waking Hours)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/deadline-alerts?checkWaking=true' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-deadline-alerts",
+      "name": "Fetch Deadline Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const alerts = $input.first().json.alerts || [];\nif (!alerts.length) return [];\nreturn alerts.map(a => ({ json: a }));"
+      },
+      "id": "extract-alerts",
+      "name": "Extract Alerts List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "batch-alerts",
+      "name": "Process Alert Batch",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [740, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_USER || 'no-reply@taskpilot.local' }}",
+        "toEmail": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.email.subject }}",
+        "text": "={{ $json.email.text }}",
+        "html": "={{ $json.email.html }}",
+        "options": {}
+      },
+      "id": "send-deadline-email",
+      "name": "Send Deadline Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/deadline-alerts/record' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { taskId: $('Process Alert Batch').item.json.taskId, stage: $('Process Alert Batch').item.json.stage, deadlineValue: $('Process Alert Batch').item.json.deadlineValue, reportingWindow: $('Process Alert Batch').item.json.reportingWindow } }}",
+        "options": {}
+      },
+      "id": "record-deadline-ledger",
+      "name": "Record in Ledger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 300]
+    }
+  ],
+  "connections": {
+    "Every Hour (Waking Hours)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Deadline Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Deadline Alerts": {
+      "main": [
+        [
+          {
+            "node": "Extract Alerts List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Alerts List": {
+      "main": [
+        [
+          {
+            "node": "Process Alert Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Alert Batch": {
+      "main": [
+        [
+          {
+            "node": "Send Deadline Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Deadline Email": {
+      "main": [
+        [
+          {
+            "node": "Record in Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record in Ledger": {
+      "main": [
+        [
+          {
+            "node": "Process Alert Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -7,16 +7,18 @@ import Notice from '../components/common/Notice.jsx';
 import Skeleton from '../components/common/Skeleton.jsx';
 import Empty from '../components/common/Empty.jsx';
 import TaskRow from '../components/tasks/TaskRow.jsx';
+import TaskReminderModal from '../components/tasks/TaskReminderModal.jsx';
 
 /**
  * Tasks Page Component
  * Serves both the complete tasks view ('/tasks') and the daily to-do view ('/today').
- * Supports searching, status filtering, priority filtering, and task deletion.
+ * Supports searching, status filtering, priority filtering, task deletion, and scheduling reminders.
  */
 export function Tasks({ refresh, onAdd, today = false }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
+  const [reminderTask, setReminderTask] = useState(null);
 
   const queryParams = new URLSearchParams();
   if (search) queryParams.set('search', search);
@@ -104,7 +106,11 @@ export function Tasks({ refresh, onAdd, today = false }) {
         ) : tasksList.length ? (
           tasksList.map((task) => (
             <div className="task-row-wrap" key={task._id}>
-              <TaskRow task={task} onChange={reload} />
+              <TaskRow
+                task={task}
+                onChange={reload}
+                onOpenReminder={(t) => setReminderTask(t)}
+              />
               <button
                 type="button"
                 className="icon-btn delete-task"
@@ -127,6 +133,15 @@ export function Tasks({ refresh, onAdd, today = false }) {
           />
         )}
       </div>
+
+      {/* Task Reminder Modal */}
+      {reminderTask && (
+        <TaskReminderModal
+          task={reminderTask}
+          onClose={() => setReminderTask(null)}
+          onUpdated={reload}
+        />
+      )}
     </>
   );
 }

@@ -1,0 +1,105 @@
+{
+  "name": "TaskPilot AI — Weekly Productivity Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "trigger-monday-8am",
+      "name": "Every Monday at 8:00 AM (Asia/Kolkata)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/reports/weekly' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-weekly-data",
+      "name": "Fetch Weekly Productivity Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst metrics = data.metrics || {};\nconst openTasks = data.openTasks || [];\n\n// 3 Priorities for the upcoming week\nconst priorities = openTasks\n  .filter(t => t.priority === 'urgent' || t.priority === 'high')\n  .slice(0, 3)\n  .map(t => `${t.title} (${t.priority} priority)`);\n\nif (!priorities.length && openTasks.length) {\n  priorities.push(openTasks[0].title);\n}\n\n// 2-3 Practical Improvements\nconst improvements = [\n  `Routine Consistency: Completed habits on ${metrics.successfulRoutineDays || 0} of ${metrics.eligibleRoutineDays || 0} scheduled days (${metrics.routineConsistencyRate || 0}%). Target 85%+ consistency.`,\n  metrics.overdueCount > 0 ? `Clear ${metrics.overdueCount} overdue tasks early this week to eliminate context switching.` : 'Zero overdue tasks backlog — maintain this clean cadence!',\n  'Protect a 90-minute morning deep work block for your highest priority task.'\n];\n\nreturn [{\n  json: {\n    ...data,\n    priorities,\n    improvements,\n    emailSubject: data.email?.subject || `Weekly Productivity Report (${data.period?.label})`,\n    emailHtml: data.email?.html,\n    emailText: data.email?.text,\n  }\n}];"
+      },
+      "id": "analyze-week",
+      "name": "Synthesize Priorities & Insights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_USER || 'no-reply@taskpilot.local' }}",
+        "toEmail": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "text": "={{ $json.emailText }}",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "send-weekly-email",
+      "name": "Send Weekly Report Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "Every Monday at 8:00 AM (Asia/Kolkata)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Weekly Productivity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Weekly Productivity Data": {
+      "main": [
+        [
+          {
+            "node": "Synthesize Priorities & Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesize Priorities & Insights": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

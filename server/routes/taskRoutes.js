@@ -2,6 +2,8 @@ import express from 'express';
 import { Task } from '../models/index.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
+import { cancelPendingRemindersForTask } from '../services/reminderService.js';
+import { invalidateTaskDeadlines } from '../services/deadlineService.js';
 
 const router = express.Router();
 
@@ -123,6 +125,16 @@ router.patch(
       return res.status(404).json({ error: 'Task not found.' });
     }
 
+    // Invalidate pending reminders if marked completed
+    if (changes.status === 'completed') {
+      await cancelPendingRemindersForTask(task._id);
+    }
+
+    // Invalidate obsolete automated deadline notifications if dueDate was updated
+    if (changes.dueDate !== undefined) {
+      await invalidateTaskDeadlines(task._id);
+    }
+
     return res.json({ task });
   })
 );
@@ -130,6 +142,7 @@ router.patch(
 /**
  * DELETE /api/tasks/:id
  * Removes a task owned by the authenticated user.
+ * Automatically cancels any pending reminders and clears deadline ledger entries to prevent orphans.
  */
 router.delete(
   '/:id',
@@ -142,6 +155,10 @@ router.delete(
     if (!task) {
       return res.status(404).json({ error: 'Task not found.' });
     }
+
+    // Cancel pending reminders and clean up deadline alert ledger
+    await cancelPendingRemindersForTask(task._id);
+    await invalidateTaskDeadlines(task._id);
 
     return res.json({ ok: true });
   })

@@ -1,16 +1,17 @@
 import React from 'react';
-import { Check, Clock } from 'lucide-react';
+import { Check, Clock, Bell } from 'lucide-react';
 import api from '../../api/client.js';
 
 /**
  * Individual task row component.
  * Allows toggling between 'completed' and 'todo' statuses, displays priority indicator,
- * and renders formatted deadline if one is assigned.
+ * renders formatted deadline if one is assigned, and opens the task reminder modal.
  */
-export function TaskRow({ task, onChange }) {
+export function TaskRow({ task, onChange, onOpenReminder }) {
   const isDone = task.status === 'completed';
 
-  async function toggleStatus() {
+  async function toggleStatus(e) {
+    e.stopPropagation();
     await api.patch(`/tasks/${task._id}`, {
       status: isDone ? 'todo' : 'completed',
     });
@@ -27,7 +28,11 @@ export function TaskRow({ task, onChange }) {
       >
         {isDone && <Check size={13} />}
       </button>
-      <div className="task-row-copy">
+      <div
+        className="task-row-copy clickable"
+        onClick={() => onOpenReminder?.(task)}
+        title="Click to view details or set reminders"
+      >
         <b>{task.title}</b>
         {task.description && <small>{task.description}</small>}
       </div>
@@ -42,6 +47,17 @@ export function TaskRow({ task, onChange }) {
           })}
         </span>
       )}
+      <button
+        type="button"
+        className="icon-btn reminder-trigger-btn"
+        title="Set or view reminders"
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenReminder?.(task);
+        }}
+      >
+        <Bell size={13} />
+      </button>
     </div>
   );
 }

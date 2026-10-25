@@ -1,0 +1,136 @@
+{
+  "name": "TaskPilot AI — Daily Evening Review",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-evening",
+      "name": "Daily at 8:30 PM (Asia/Kolkata)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/reports/evening' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-evening-data",
+      "name": "Fetch Evening Review Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/routine-summary' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-routine-summary",
+      "name": "Fetch Routine Summary Separately",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const eveningData = $('Fetch Evening Review Data').first().json;\nconst routineData = $input.first().json;\n\nconst completed = eveningData.completedToday || [];\nconst pending = eveningData.pendingTasks || [];\n\n// Suggest priorities for tomorrow from highest priority pending tasks\nconst tomorrowPriorities = pending\n  .filter(t => t.priority === 'urgent' || t.priority === 'high')\n  .slice(0, 3)\n  .map(t => `${t.title} (${t.priority})`);\n\nif (!tomorrowPriorities.length && pending.length) {\n  tomorrowPriorities.push(pending[0].title);\n}\n\nreturn [{\n  json: {\n    ...eveningData,\n    routineSummary: routineData,\n    tomorrowPriorities,\n    emailSubject: eveningData.email?.subject || `Evening Review: ${completed.length} Tasks Completed Today`,\n    emailHtml: eveningData.email?.html,\n    emailText: eveningData.email?.text,\n  }\n}];"
+      },
+      "id": "format-evening-review",
+      "name": "Aggregate Review & Priorities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_USER || 'no-reply@taskpilot.local' }}",
+        "toEmail": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "text": "={{ $json.emailText }}",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "send-evening-email",
+      "name": "Send Evening Review Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "Daily at 8:30 PM (Asia/Kolkata)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Evening Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Evening Review Data": {
+      "main": [
+        [
+          {
+            "node": "Fetch Routine Summary Separately",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Routine Summary Separately": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Review & Priorities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Review & Priorities": {
+      "main": [
+        [
+          {
+            "node": "Send Evening Review Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

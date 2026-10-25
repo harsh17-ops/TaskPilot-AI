@@ -110,3 +110,63 @@
 [data-theme=dark] .vapi-config-notice code{background:#332f50}
 [data-theme=dark] .tool-chips span{background:#29263a;color:#c9c4e5}
 
+/* Task Reminder System Styles */
+.task-row-copy.clickable{cursor:pointer}
+.task-row-copy.clickable:hover b{color:#644ecf}
+.reminder-trigger-btn{color:#8b8ea2;transition:all .15s}
+.reminder-trigger-btn:hover{color:#7055d7;background:#f1efff}
+
+.reminder-modal{width:min(100%,560px);max-height:92vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.reminder-task-banner{background:#f8f7fd;border:1px solid #ebe8f8;border-radius:10px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.reminder-task-info b{font-size:13px;display:block;color:var(--ink);margin-bottom:3px}
+.reminder-task-meta{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+.meta-text{text-transform:capitalize}
+.due-text{display:inline-flex;align-items:center;gap:4px;color:#7a729e;font-weight:600}
+.status-chip{font-size:9px;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:12px;background:#eeeaff;color:#674dd8}
+.status-chip.completed{background:#eff8f2;color:#47926c}
+
+.reminders-section{display:flex;flex-direction:column;gap:10px}
+.section-title{display:flex;align-items:center;gap:7px;font-size:11px;color:#6352af}
+.section-title b{font-size:11px}
+.reminders-list{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto}
+.reminder-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;transition:all .15s}
+.reminder-card:hover{border-color:#d5cef5}
+.reminder-card.sent{background:#fafdff;border-color:#e4eef6}
+.reminder-card.failed{background:#fffaf9;border-color:#fededc}
+.reminder-card-main{flex:1;min-width:0}
+.reminder-time-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px}
+.time-icon{color:#765bd4}
+.reminder-status-pill{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:10px}
+.status-pending{background:#f2efff;color:#6d53d8}
+.status-processing{background:#eef5ff;color:#4f84c4}
+.status-sent{background:#eff8f2;color:#3b8761}
+.status-cancelled{background:#f2f2f5;color:#8d8e9b}
+.status-failed{background:#fff0f0;color:#df474b}
+
+.reminder-note-text{margin-top:6px;font-size:11px;color:#55576a;font-style:italic;background:#faf9fe;padding:6px 10px;border-radius:6px;border-left:2px solid #9987ea}
+.reminder-delivery-meta{margin-top:5px;font-size:9px;color:#5a9775}
+.reminder-error-meta{margin-top:5px;font-size:9px;color:#c94545}
+.reminder-actions{display:flex;gap:4px}
+.text-danger:hover{color:#d83c3c;background:#fff1f0}
+.reminders-empty{padding:20px;text-align:center;background:#fafafd;border:1px dashed #e4e3ee;border-radius:9px;color:var(--muted)}
+.reminders-empty p{font-size:11px;font-weight:600;margin:0}
+.reminders-empty small{font-size:10px;display:block;margin-top:3px}
+.reminders-loading{padding:14px;text-align:center;font-size:11px;color:var(--muted)}
+
+.reminder-form-box{background:#faf9ff;border:1px solid #eae5fc;border-radius:10px;padding:14px;display:grid;gap:12px}
+.form-box-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#494464}
+.timezone-hint{font-size:10px;color:var(--muted);text-align:right}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Dark theme overrides for reminder elements */
+[data-theme=dark] .reminder-trigger-btn{color:#aaa}
+[data-theme=dark] .reminder-trigger-btn:hover{color:#b3a2f7;background:#2d2944}
+[data-theme=dark] .reminder-task-banner{background:#252335;border-color:#38344e}
+[data-theme=dark] .reminder-card{background:#232130;border-color:#363349}
+[data-theme=dark] .reminder-card.sent{background:#1f2824;border-color:#2e4438}
+[data-theme=dark] .reminder-card.failed{background:#2d2125;border-color:#533139}
+[data-theme=dark] .reminder-note-text{background:#2b273d;color:#d9d6e9;border-left-color:#806ad9}
+[data-theme=dark] .reminder-form-box{background:#252237;border-color:#393452}
+[data-theme=dark] .reminders-empty{background:#1e1d29;border-color:#343248}
+

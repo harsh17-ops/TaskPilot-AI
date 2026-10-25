@@ -1,0 +1,105 @@
+{
+  "name": "TaskPilot AI — Daily Morning Briefing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-8am",
+      "name": "Daily at 8:00 AM (Asia/Kolkata)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.TASKPILOT_API_URL || 'http://localhost:4000') + '/api/n8n/reports/morning' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_AUTOMATION_SECRET || 'taskpilot_n8n_sec_994a318e27c15ba8' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-morning-data",
+      "name": "Fetch Morning Productivity Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst tasks = data.tasksDueToday || [];\nconst overdue = data.overdueTasks || [];\n\n// Generate realistic non-overlapping timeblock suggestions\nconst suggestions = [];\nlet currentHour = 9;\nlet currentMin = 30;\n\nconst allPriorities = [...overdue, ...tasks].slice(0, 4);\nfor (const t of allPriorities) {\n  const duration = t.estimatedMinutes || 45;\n  const startStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;\n  \n  let endMin = currentMin + duration;\n  let endHour = currentHour + Math.floor(endMin / 60);\n  endMin = endMin % 60;\n  const endStr = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;\n  \n  suggestions.push(`${startStr} - ${endStr}: ${t.title} (${duration}m, ${t.priority})`);\n  \n  // Add 15 min buffer\n  currentMin = (endMin + 15) % 60;\n  currentHour = endHour + Math.floor((endMin + 15) / 60);\n}\n\nif (!suggestions.length) {\n  suggestions.push('Flexible Focus: Plan your key priorities in TaskPilot AI.');\n}\n\nreturn [{\n  json: {\n    ...data,\n    suggestions,\n    emailSubject: data.email?.subject || `Morning Briefing: Your Focus for ${data.date}`,\n    emailHtml: data.email?.html,\n    emailText: data.email?.text,\n  }\n}];"
+      },
+      "id": "generate-plan",
+      "name": "Synthesize Timeblocks Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_USER || 'no-reply@taskpilot.local' }}",
+        "toEmail": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "text": "={{ $json.emailText }}",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "send-morning-email",
+      "name": "Send Morning Briefing Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "Daily at 8:00 AM (Asia/Kolkata)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Morning Productivity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Morning Productivity Data": {
+      "main": [
+        [
+          {
+            "node": "Synthesize Timeblocks Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesize Timeblocks Plan": {
+      "main": [
+        [
+          {
+            "node": "Send Morning Briefing Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

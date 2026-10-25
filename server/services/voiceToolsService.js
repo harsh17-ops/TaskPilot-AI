@@ -1,6 +1,8 @@
 import { User, Task, RoutineDay } from '../models/index.js';
 import { getLocalDate, ensureRoutineDay } from './routineService.js';
 import { calculateStreaks } from './streaks.js';
+import { cancelPendingRemindersForTask } from './reminderService.js';
+import { invalidateTaskDeadlines } from './deadlineService.js';
 
 /**
  * Voice Tools Service
@@ -185,6 +187,13 @@ export async function updateTask(userId, { taskId, titleQuery, title, priority, 
 
   await task.save();
 
+  if (status === 'completed') {
+    await cancelPendingRemindersForTask(task._id);
+  }
+  if (dueDate !== undefined) {
+    await invalidateTaskDeadlines(task._id);
+  }
+
   return {
     success: true,
     message: `Updated task "${task.title}".`,
@@ -221,6 +230,9 @@ export async function completeTask(userId, { taskId, titleQuery }) {
   task.status = 'completed';
   task.completedAt = new Date();
   await task.save();
+
+  // Invalidate any pending reminders for this completed task
+  await cancelPendingRemindersForTask(task._id);
 
   return {
     success: true,

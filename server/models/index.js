@@ -7,3 +7,5 @@ export { Task } from './Task.js';
 export { Routine } from './Routine.js';
 export { RoutineDay } from './RoutineDay.js';
 export { Conversation } from './Conversation.js';
+export { Reminder } from './Reminder.js';
+export { DeadlineNotificationLedger } from './DeadlineNotificationLedger.js';

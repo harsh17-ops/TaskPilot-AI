@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   CheckSquare,
@@ -17,6 +17,7 @@ import Skeleton from '../components/common/Skeleton.jsx';
 import Empty from '../components/common/Empty.jsx';
 import QuickAdd from '../components/common/QuickAdd.jsx';
 import TaskRow from '../components/tasks/TaskRow.jsx';
+import TaskReminderModal from '../components/tasks/TaskReminderModal.jsx';
 
 /**
  * Overview / Dashboard Page
@@ -29,7 +30,8 @@ import TaskRow from '../components/tasks/TaskRow.jsx';
  * - AI assistant focus banner
  */
 export function Overview({ user, refresh, onAdd }) {
-  const { data, error, busy } = useLoad('/analytics/summary', refresh);
+  const { data, error, busy, reload } = useLoad('/analytics/summary', refresh);
+  const [reminderTask, setReminderTask] = useState(null);
 
   const now = new Date();
   const currentHour = now.getHours();
@@ -107,7 +109,14 @@ export function Overview({ user, refresh, onAdd }) {
               </div>
 
               {recentTasks.length ? (
-                recentTasks.map((t) => <TaskRow key={t._id} task={t} />)
+                recentTasks.map((t) => (
+                  <TaskRow
+                    key={t._id}
+                    task={t}
+                    onChange={reload}
+                    onOpenReminder={(task) => setReminderTask(task)}
+                  />
+                ))
               ) : (
                 <Empty
                   title="A clear runway"
@@ -165,7 +174,7 @@ export function Overview({ user, refresh, onAdd }) {
                   <p>Get it out of your head and onto your list</p>
                 </div>
               </div>
-              <QuickAdd onAdded={() => location.reload()} />
+              <QuickAdd onAdded={() => reload()} />
             </div>
 
             <div className="focus-banner">
@@ -181,6 +190,15 @@ export function Overview({ user, refresh, onAdd }) {
               </NavLink>
             </div>
           </div>
+
+          {/* Reminder Modal */}
+          {reminderTask && (
+            <TaskReminderModal
+              task={reminderTask}
+              onClose={() => setReminderTask(null)}
+              onUpdated={reload}
+            />
+          )}
         </>
       )}
     </>

@@ -15,6 +15,8 @@ import routineRoutes from './routes/routineRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
+import reminderRoutes from './routes/reminderRoutes.js';
+import n8nRoutes from './routes/n8nRoutes.js';
 
 // Centralized error handling
 import { errorHandler } from './middleware/errorHandler.js';
@@ -49,6 +51,9 @@ app.use('/api/routines', routineRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/reminders', reminderRoutes);
+app.use('/api/n8n', n8nRoutes);
+app.use('/api/automation', n8nRoutes);
 
 // Centralized error handling middleware (must be registered after all routes)
 app.use(errorHandler);

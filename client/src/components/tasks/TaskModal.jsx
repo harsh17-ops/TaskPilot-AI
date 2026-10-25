@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowUpRight } from 'lucide-react';
+import { X, ArrowUpRight, Bell } from 'lucide-react';
 import api from '../../api/client.js';
 
 /**
@@ -11,6 +11,7 @@ import api from '../../api/client.js';
  * - priority (urgent, high, medium, low)
  * - due date (defaults to initialDate if provided from calendar click)
  * - estimated time in minutes (1 - 1440)
+ * - optional instant email reminder scheduling
  */
 export function TaskModal({ initialDate, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -20,6 +21,12 @@ export function TaskModal({ initialDate, onClose, onSaved }) {
     dueDate: initialDate || '',
     estimatedMinutes: '',
   });
+
+  const [enableReminder, setEnableReminder] = useState(false);
+  const [reminderDate, setReminderDate] = useState(initialDate || new Date().toLocaleDateString('en-CA'));
+  const [reminderTime, setReminderTime] = useState('09:00');
+  const [reminderNote, setReminderNote] = useState('');
+
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -29,14 +36,38 @@ export function TaskModal({ initialDate, onClose, onSaved }) {
     setError('');
 
     try {
-      await api.post('/tasks', {
+      const taskRes = await api.post('/tasks', {
         ...form,
         dueDate: form.dueDate ? new Date(`${form.dueDate}T12:00:00`).toISOString() : null,
         estimatedMinutes: form.estimatedMinutes ? Number(form.estimatedMinutes) : null,
       });
+
+      const createdTask = taskRes.data.task;
+
+      // If user chose to schedule a reminder alongside creation
+      if (enableReminder && createdTask?._id) {
+        if (!reminderDate || !reminderTime) {
+          throw new Error('Please specify both a date and time for the reminder.');
+        }
+        const scheduledDate = new Date(`${reminderDate}T${reminderTime}:00`);
+        if (isNaN(scheduledDate.getTime())) {
+          throw new Error('Invalid reminder date or time.');
+        }
+        if (scheduledDate.getTime() < Date.now() - 60000) {
+          throw new Error('Reminder time must be in the future.');
+        }
+
+        await api.post('/reminders', {
+          taskId: createdTask._id,
+          scheduledAt: scheduledDate.toISOString(),
+          note: reminderNote,
+          timezone: 'Asia/Kolkata',
+        });
+      }
+
       onSaved();
     } catch (err) {
-      setError(err.response?.data?.error || 'Could not save task.');
+      setError(err.response?.data?.error || err.message || 'Could not save task.');
     } finally {
       setBusy(false);
     }
@@ -100,7 +131,12 @@ export function TaskModal({ initialDate, onClose, onSaved }) {
             <input
               type="date"
               value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, dueDate: e.target.value });
+                if (!enableReminder) {
+                  setReminderDate(e.target.value);
+                }
+              }}
             />
           </label>
         </div>
@@ -116,6 +152,59 @@ export function TaskModal({ initialDate, onClose, onSaved }) {
             placeholder="30"
           />
         </label>
+
+        {/* Optional Reminder Section */}
+        <div style={{ marginTop: '4px', borderTop: '1px solid var(--line)', paddingTop: '10px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={enableReminder}
+              onChange={(e) => setEnableReminder(e.target.checked)}
+              style={{ width: 'auto', margin: 0 }}
+            />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bell size={13} style={{ color: '#7055d7' }} />
+              Schedule email reminder for this task
+            </span>
+          </label>
+
+          {enableReminder && (
+            <div className="reminder-form-box" style={{ marginTop: '10px' }}>
+              <div className="form-columns">
+                <label>
+                  Reminder Date
+                  <input
+                    type="date"
+                    required
+                    min={new Date().toLocaleDateString('en-CA')}
+                    value={reminderDate}
+                    onChange={(e) => setReminderDate(e.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Reminder Time
+                  <input
+                    type="time"
+                    required
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Reminder note <span className="optional">Optional</span>
+                <input
+                  placeholder="e.g. Focus on this before lunch"
+                  value={reminderNote}
+                  maxLength={160}
+                  onChange={(e) => setReminderNote(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
+        </div>
 
         {error && <div className="form-error">{error}</div>}
 
